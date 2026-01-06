@@ -1,18 +1,17 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-require('dotenv').config();
+const express = require("express");
+const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
-app.use(cors());
-app.use(bodyParser.json());
+// Serve static frontend
+app.use(express.static(path.join(__dirname, "public")));
 
-app.get('/', (req, res) => {
-    res.send('Hello from Full-Stack App via PM2!');
+// Health API
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", service: "backend" });
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

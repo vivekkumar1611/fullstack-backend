@@ -2,12 +2,6 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone Repo') {
-            steps {
-                git 'https://github.com/vivekkumar1611/fullstack-backend.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t fullstack-backend-app .'

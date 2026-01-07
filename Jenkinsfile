@@ -1,44 +1,37 @@
 pipeline {
     agent any
 
-    environment {
-        APP_DIR = "/var/www/fullstack-backend"
-        APP_NAME = "fullstack-backend"
-    }
-
     stages {
-        stage('Checkout') {
+        stage('Clone Repo') {
             steps {
-                git branch: 'main', url: 'https://github.com/vivekkumar1611/fullstack-backend.git'
+                git 'https://github.com/vivekkumar1611/fullstack-backend.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t fullstack-backend-app .'
+            }
+        }
+
+        stage('Stop Old Container') {
             steps {
                 sh '''
-                cd /var/www/fullstack-backend
-                npm install
+                docker stop fullstack-backend || true
+                docker rm fullstack-backend || true
                 '''
             }
         }
 
-        stage('Restart App') {
+        stage('Run Container') {
             steps {
                 sh '''
-                pm2 delete fullstack-backend || true
-                pm2 start /var/www/fullstack-backend/app.js --name fullstack-backend
-                pm2 save
+                docker run -d \
+                  --name fullstack-backend \
+                  -p 3000:3000 \
+                  fullstack-backend-app
                 '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo 'Deployment successful'
-        }
-        failure {
-            echo 'Deployment failed'
         }
     }
 }

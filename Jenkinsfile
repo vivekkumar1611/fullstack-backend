@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NEXUS_URL = "16.171.12.25:8083"
+        NEXUS_URL = "16.171.230.164:8083"
         NEXUS_REPO = "docker-hosted"
         IMAGE_NAME = "backend"
         IMAGE_TAG  = "5"

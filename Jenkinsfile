@@ -4,9 +4,15 @@ pipeline {
     environment {
         GITHUB_TOKEN      = credentials('github-token')
         NEXUS_CREDENTIALS = credentials('nexus-credentials')
+        EC2_KEY           = credentials('ec2-key')
         NEXUS_DOCKER_REPO = '16.171.12.25:8083/docker-hosted'
-        IMAGE_NAME        = 'nexus-test'
+        IMAGE_NAME        = 'backend'
         IMAGE_TAG         = "${env.BUILD_NUMBER}"
+        EC2_USER          = 'ubuntu'
+        EC2_HOST          = '13.53.124.88'  // Replace with your EC2 public IP
+        EC2_PORT          = '22'
+        CONTAINER_NAME    = 'backend'
+        APP_PORT          = '3000'
     }
 
     stages {
@@ -21,12 +27,6 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
-            }
-        }
-
-        stage('Run Tests') {
-            steps {
-                echo 'Skipping tests for now (or run npm test)'
             }
         }
 
@@ -45,15 +45,21 @@ pipeline {
             }
         }
 
-        stage('Deploy (Optional)') {
+        stage('Deploy to EC2') {
             steps {
-                echo 'Add deployment steps: docker pull + run container on target server'
+                sh """
+                ssh -i ${EC2_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \\
+                "docker pull ${NEXUS_DOCKER_REPO}/${IMAGE_NAME}:${IMAGE_TAG} && \\
+                docker stop ${CONTAINER_NAME} || true && \\
+                docker rm ${CONTAINER_NAME} || true && \\
+                docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:${APP_PORT} ${NEXUS_DOCKER_REPO}/${IMAGE_NAME}:${IMAGE_TAG}"
+                """
             }
         }
     }
 
     post {
-        success { echo 'Pipeline succeeded ✅' }
+        success { echo 'Pipeline completed successfully ✅' }
         failure { echo 'Pipeline failed ❌' }
     }
 }

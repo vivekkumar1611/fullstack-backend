@@ -4,13 +4,10 @@ pipeline {
     environment {
         GITHUB_TOKEN      = credentials('github-token')
         NEXUS_CREDENTIALS = credentials('nexus-credentials')
-        EC2_KEY           = credentials('ec2-key')
         NEXUS_DOCKER_REPO = '16.171.12.25:8083/docker-hosted'
         IMAGE_NAME        = 'backend'
         IMAGE_TAG         = "${env.BUILD_NUMBER}"
-        EC2_USER          = 'ubuntu'
-        EC2_HOST          = '13.53.124.88'  // Replace with your EC2 public IP
-        EC2_PORT          = '22'
+        EC2_HOST          = '13.53.124.88'          // Replace with your EC2 public IP
         CONTAINER_NAME    = 'backend'
         APP_PORT          = '3000'
     }
@@ -47,13 +44,16 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sh """
-                ssh -i ${EC2_KEY} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \\
-                "docker pull ${NEXUS_DOCKER_REPO}/${IMAGE_NAME}:${IMAGE_TAG} && \\
-                docker stop ${CONTAINER_NAME} || true && \\
-                docker rm ${CONTAINER_NAME} || true && \\
-                docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:${APP_PORT} ${NEXUS_DOCKER_REPO}/${IMAGE_NAME}:${IMAGE_TAG}"
-                """
+                // Use Jenkins SSH credentials to deploy
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-key', keyFileVariable: 'EC2_PEM', usernameVariable: 'EC2_USER')]) {
+                    sh """
+                    ssh -i ${EC2_PEM} -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} \\
+                    "docker pull ${NEXUS_DOCKER_REPO}/${IMAGE_NAME}:${IMAGE_TAG} && \\
+                    docker stop ${CONTAINER_NAME} || true && \\
+                    docker rm ${CONTAINER_NAME} || true && \\
+                    docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:${APP_PORT} ${NEXUS_DOCKER_REPO}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    """
+                }
             }
         }
     }
